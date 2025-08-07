@@ -136,7 +136,7 @@ ON
   This specifies that the source of our data is the invalid_crimes_iucr table you created in the previous task. This is efficient because we are only working with the subset of data that we already know has a problem.
 - **JOIN ... ON ...**
   This is the core logic of the task. We use an INNER JOIN, which means that only rows that find a successful match will be included in the final table.
-  **t1.primary_type = t2.primary_description AND t1.description = t2.secondary_description**: This condition must be met for a row to be included. It checks if the primary crime type from the transaction table matches the primary description in the reference table AND if the secondary description also matches. This ensures a high-quality match.
+-  **t1.primary_type = t2.primary_description AND t1.description = t2.secondary_description**: This condition must be met for a row to be included. It checks if the primary crime type from the transaction table matches the primary description in the reference table AND if the secondary description also matches. This ensures a high-quality match.
   
 ### What This New Table Will Show You
 
