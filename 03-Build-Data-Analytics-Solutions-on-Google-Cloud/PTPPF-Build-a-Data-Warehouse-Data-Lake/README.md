@@ -89,8 +89,8 @@ WHERE IUCR NOT IN (SELECT IUCR FROM `qwiklabs-gcp-03-97da6ea35bd1.crimes_ds.chic
 
 ### This query will
 
-- SELECT DISTINCT IUCR, primary_type, description: This selects the three columns of interest: IUCR, primary_type, and description.  DISTINCT ensures that only unique combinations of these three columns are included in the resulting table.
-- WHERE IUCR NOT IN (SELECT IUCR FROM chicago_iucr_ref): This is the crucial part. It filters the results to include only rows where the IUCR code is not present in the chicago_iucr_ref table.  This uses a subquery to get all the IUCR codes from the reference table and then excludes any rows from chicago_crime that match those codes.
+- **SELECT DISTINCT IUCR, primary_type, description**: This selects the three columns of interest: IUCR, primary_type, and description.  DISTINCT ensures that only unique combinations of these three columns are included in the resulting table.
+- **WHERE IUCR NOT IN (SELECT IUCR FROM chicago_iucr_ref)**: This is the crucial part. It filters the results to include only rows where the IUCR code is not present in the chicago_iucr_ref table.  This uses a subquery to get all the IUCR codes from the reference table and then excludes any rows from chicago_crime that match those codes.
 
 ## Task 4. Perform comparison based on IUCR descriptions
 
@@ -126,18 +126,17 @@ ON
 
 ### Explanation of the Code
 
-- SELECT ...
+- **SELECT ...**
   This clause defines the columns that will be in your new table.
-  t1.IUCR AS original_invalid_iucr: We select the IUCR code from your invalid_crimes_iucr table and give it a clear alias. This is the code that we know has no direct match.
-  t1.primary_type and t1.description: These are the description fields from the original crime data that we will use for matching.
-  t2.IUCR AS potential_matched_iucr: This is the crucial part. We select the IUCR code from the reference table (chicago_iucr_ref). If a match is found on the descriptions, this column will show you what the IUCR code should have been.
-  t2.primary_description and t2.secondary_description: We include these from the reference table to confirm that our text-based join was successful.
-
- - FROM \crimes_ds.invalid_crimes_iucr` AS t1`
+  **t1.IUCR AS original_invalid_iucr**: We select the IUCR code from your invalid_crimes_iucr table and give it a clear alias. This is the code that we know has no direct match.
+  **t1.primary_type and t1.description**: These are the description fields from the original crime data that we will use for matching.
+  **t2.IUCR AS potential_matched_iucr**: This is the crucial part. We select the IUCR code from the reference table (chicago_iucr_ref). If a match is found on the descriptions, this column will show you what the IUCR code should have been.
+  **t2.primary_description and t2.secondary_description**: We include these from the reference table to confirm that our text-based join was successful.
+ - **FROM \crimes_ds.invalid_crimes_iucr` AS t1`**
   This specifies that the source of our data is the invalid_crimes_iucr table you created in the previous task. This is efficient because we are only working with the subset of data that we already know has a problem.
-- JOIN ... ON ...
+- **JOIN ... ON ...**
   This is the core logic of the task. We use an INNER JOIN, which means that only rows that find a successful match will be included in the final table.
-  t1.primary_type = t2.primary_description AND t1.description = t2.secondary_description: This condition must be met for a row to be included. It checks if the primary crime type from the transaction table matches the primary description in the reference table AND if the secondary description also matches. This ensures a high-quality match.
+  **t1.primary_type = t2.primary_description AND t1.description = t2.secondary_description**: This condition must be met for a row to be included. It checks if the primary crime type from the transaction table matches the primary description in the reference table AND if the secondary description also matches. This ensures a high-quality match.
   
 ### What This New Table Will Show You
 
@@ -186,24 +185,24 @@ WHERE
 
 ### Explanation of the Code
 
-- WITH distinct_crime_combinations AS (...)
+- **WITH distinct_crime_combinations AS (...)**
   This is a Common Table Expression (CTE). We use it to create a temporary, named result set (distinct_crime_combinations).
   Inside the CTE, we SELECT DISTINCT IUCR, primary_type, description from the main chicago_crime table. This is a critical optimization. Instead of joining on all 7+ million crime records, we first boil it down to just the few thousand unique combinations of codes and descriptions. This makes the subsequent joins much faster and cheaper.
-- FROM distinct_crime_combinations AS dcc
+- **FROM distinct_crime_combinations AS dcc**
 Our main query now uses this pre-aggregated CTE as its source, which we alias as dcc.
-- LEFT JOIN ... AS ref_by_code ON dcc.IUCR = ref_by_code.IUCR
+- **LEFT JOIN ... AS ref_by_code ON dcc.IUCR = ref_by_code.IUCR**
 This is our first attempt to find a match. We LEFT JOIN our distinct crime combinations to the reference table, trying to connect them by the IUCR code. If a match is found, columns from ref_by_code (like ref_by_code.IUCR) will be filled in. If no match is found, they will be NULL.
-- LEFT JOIN ... AS ref_by_desc ON ...
+- **LEFT JOIN ... AS ref_by_desc ON ...**
 This is our second attempt. We perform another LEFT JOIN to the same reference table, but this time the condition is the combination of primary_type and description. If a match is found on the descriptions, columns from ref_by_desc will be filled in. Otherwise, they will be NULL.
-- WHERE ref_by_code.IUCR IS NULL AND ref_by_desc.IUCR IS NULL
+- **WHERE ref_by_code.IUCR IS NULL AND ref_by_desc.IUCR IS NULL**
 This is the most important part of the query. The WHERE clause filters the results of the joins.
-ref_by_code.IUCR IS NULL: This keeps only the rows where the first join (by code) failed.
-ref_by_desc.IUCR IS NULL: This keeps only the rows where the second join (by description) failed.
+**ref_by_code.IUCR IS NULL**: This keeps only the rows where the first join (by code) failed.
+**ref_by_desc.IUCR IS NULL**: This keeps only the rows where the second join (by description) failed.
 By combining them with AND, we are telling BigQuery: "Only give me the records that could not be matched by the IUCR code, and also could not be matched by the descriptions." This precisely isolates the truly mismatched data as required by the task.
 
 ### What This Table Represents
 
-The final crimes_ds.mismatched_iucr_descriptions table will contain a clean list of IUCR/description combinations that exist in the transactional chicago_crime data but have no logical equivalent in the chicago_iucr_ref master list. These are the final problem records that require manual investigation to understand the discrepancy.
+The final `crimes_ds.mismatched_iucr_descriptions` table will contain a clean list of IUCR/description combinations that exist in the transactional `chicago_crime` data but have no logical equivalent in the `chicago_iucr_ref` master list. These are the final problem records that require manual investigation to understand the discrepancy.
 
 # Congratulations!
 
